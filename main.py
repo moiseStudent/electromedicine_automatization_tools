@@ -18,6 +18,9 @@ class ElectromedicineManager:
         self.data_dict = self.inventory.to_dict(orient='records')
 
         #print(type(self.inventory.head()))
+
+    
+
     
 
         
@@ -26,8 +29,7 @@ class ElectromedicineManager:
     
     def create_folder_structure(self):
         pass
-
-
+    
 ### Instance ###
 manager = ElectromedicineManager("../inventarioExample.xlsx")
 print(manager.data_dict[0])
