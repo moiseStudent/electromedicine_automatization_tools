@@ -19,8 +19,8 @@ class ElectromedicinaAutomation:
             self.df = pd.read_excel(file_path)
         else:
             self.df = pd.read_csv(file_path)
-        
-        # Limpieza básica de nombres de columnas para evitar errores de acceso
+
+        ## Data cleaning
         self.df.columns = [c.strip() for c in self.df.columns]
         print(f" Inventario cargado con {len(self.df)} registros.")
 
@@ -33,8 +33,8 @@ class ElectromedicinaAutomation:
         Paso 1: Filtrar equipos únicos por Marca y Modelo.
         Esto evita hacer 500 búsquedas si muchos equipos se repiten.
         """
-        print("🔍 Identificando modelos únicos para optimizar tiempo...")
-        # Suponiendo que tus columnas se llaman 'Marca' y 'Modelo'
+        print(" Identificando modelos únicos para optimizar tiempo...")
+        # Columna de marca y modelo - agregar nombre
         df_unicos = self.df.drop_duplicates(subset=['Marca', 'Modelo']).copy()
         df_unicos['Link_Manual'] = None
         
@@ -68,7 +68,7 @@ class ElectromedicinaAutomation:
                             
                         print(f" Encontrado: {modelo} -> {df_unicos.at[index, 'Link_Manual'][:50]}...")
                 
-                # Jitter de ingeniería: pausa aleatoria para no ser baneado
+                # Jitter de : pausa aleatoria para no ser baneado
                 time.sleep(random.uniform(2.5, 5.0))
                 
             except Exception as e:
@@ -78,13 +78,13 @@ class ElectromedicinaAutomation:
         self.df = self.df.merge(df_unicos[['Marca', 'Modelo', 'Link_Manual']], on=['Marca', 'Modelo'], how='left')
 
     def descargar_y_organizar(self):
-        """Paso 4: Descarga física y organización en carpetas."""
+        """Paso 4: Descarga fisica y organización en carpetas."""
         print("\n Iniciando fase de descarga y organización...")
         
         for index, row in self.df.iterrows():
             link = row.get('Link_Manual_y') if 'Link_Manual_y' in self.df.columns else row.get('Link_Manual')
             
-            # --- VALIDACIÓN DE INGENIERÍA ---
+            ### Validacion de los datos
             if not link or pd.isna(link) or str(link).strip() == "":
                 continue
 
@@ -110,15 +110,24 @@ class ElectromedicinaAutomation:
 
             try:
                 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/110.0.0.0"}
-                with requests.get(link, impersonate="chrome110", headers=headers, stream=True, timeout=20) as r:
-                    r.raise_for_status()
-                    
-                    with open(ruta_completa, 'wb') as f:
-                        for chunk in r.iter_content(chunk_size=1024 * 128): # Chunks de 128KB
+                
+                # Realizamos la petición fuera del 'with'
+                r = requests.get(link, impersonate="chrome110", headers=headers, stream=True, timeout=20)
+                
+                # Verificamos si la petición fue exitosa
+                r.raise_for_status()
+                
+                # Usamos el 'with' solo para el manejo del archivo
+                with open(ruta_completa, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=1024 * 128): # 128KB chunks
+                        if chunk: # Filtramos chunks vacíos
                             f.write(chunk)
                 
-                # Validación post-descarga
-                if ruta_completa.stat().st_size < 1000: # Menos de 1KB es probablemente un error o HTML
+                # Cerramos la conexión manualmente si la librería no lo hace automáticamente al terminar el stream
+                # r.close() 
+
+                # Validacion post-descarga 
+                if ruta_completa.stat().st_size < 1000:
                     print(f" Archivo corrupto o inválido para {row['Modelo']}. Eliminando...")
                     ruta_completa.unlink()
                 else:
@@ -132,12 +141,12 @@ class ElectromedicinaAutomation:
         self.df.to_excel(output_path, index=False)
         print(f"\n Proceso terminado. Excel final: {output_path}")
 
-# --- Ejecución del Programa ---
+### Init 
 if __name__ == "__main__":
-    # Sustituye por tu archivo real
+    #
     procesador = ElectromedicinaAutomation("inventario_equipos.xlsx")
     
-    # Ejecución de flujo
+    ### Flujo de ejecucion
     procesador.procesar_inventario()
     procesador.descargar_y_organizar()
     procesador.exportar_excel_final()
