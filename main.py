@@ -137,7 +137,7 @@ class ElectromedicinaAutomation:
                 print(f" Error descargando {row['Modelo']} desde {parsed_url.netloc}: {e}")
 
     def exportar_excel_final(self):
-        output_path = "Inventario_Finalizado_Con_Links.xlsx"
+        output_path = "Inventario_Finalizado_enlace.xlsx"
         self.df.to_excel(output_path, index=False)
         print(f"\n Proceso terminado. Excel final: {output_path}")
 
